@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "[장애 회고] Reactor retryWhen과 onErrorContinue의 위험한 만남"
+title:  "[장애 회고] Reactor retryWhen과 onErrorContinue"
 subtitle: "Reactor 개발자도 후회하는 연산자가 있다?"
 date:   2025-09-22 19:52:13 +0900
 categories: dev
@@ -12,7 +12,7 @@ Reactor의 에러 처리 연산자인 `retryWhen`과 `onErrorContinue`를 함께
 
 ---
 
-## 1. 장애 상황 발생!
+## 1. 장애 상황 발생
 
 어느 날 팀에서 운영 중인 배치를 모니터링하다가 이상한 점을 발견했습니다.
 

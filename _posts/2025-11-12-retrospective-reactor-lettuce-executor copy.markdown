@@ -70,7 +70,9 @@ Reactor에서 `subscribe()`를 호출할 때 `onError` 소비자(Consumer)를 �
 저는 `subscribeOn(Schedulers.boundedElastic())`을 썼으니, `map`이나 `flatMap` 같은 로직들도 당연히 별도의 작업 스레드(`boundedElastic`)에서 돌 것이라고 생각했고, 그렇기에 Lettuce의 Executor 스레드에 영향을 줄 거라고는 생각을 하지 못했습니다.
 
 **하지만 Lettuce는 비동기 소스입니다.**
+
 Lettuce(Netty)는 IO 이벤트를 처리하고 데이터를 발행(`onNext`)하는 시작점이 바로 **Lettuce의 EventLoop 스레드**입니다.
+
 `subscribeOn`은 구독이 **시작되는** 시점의 스레드만 결정할 뿐, 이미 Lettuce의 Executor 스레드에서 데이터가 밀려들어오는 상황(Pub/Sub 구조)에서는 연산자들의 실행 스레드를 바꾸지 못하는 경우가 많습니다.
 
 결국 로직은 여전히 **Lettuce의 EventExecutor 스레드** 위에서 실행되고 있었고, 거기서 에러가 터졌는데 처리가 안 되니(`ErrorCallbackNotImplemented`), **Lettuce의 EventExecutor 스레드 자체가 비정상 종료되는 상황**이 벌어진 것입니다.
@@ -91,7 +93,10 @@ public Mono<Response> getCachedData() {
 
 Upstream(`redisClient.getData()`)에서 에러가 발생했다면 당연히 Downstream의 `onErrorResume`이 실행되어야 정상입니다. 하지만 이번 경우는 **에러가 발생한 곳이 바로 에러를 전달해야 할 Executor**였다는 점이 문제였습니다.
 
-Lettuce가 Downstream으로 에러 시그널(`onError`)을 보내기 위해서는 내부적으로 EventExecutor에 작업을 할당(`execute`)해야 합니다. (스택트레이스의 `io.lettuce.core.RedisPublisher$PublishOnSubscriber.onError` 부분)
+Lettuce가 Downstream으로 에러 시그널(`onError`)을 보내기 위해서는 내부적으로 EventExecutor에 작업을 할당(`execute`)해야 합니다. 
+
+(스택트레이스의 `io.lettuce.core.RedisPublisher$PublishOnSubscriber.onError` 부분)
+
 하지만 이미 EventExecutor 스레드들이 모두 종료(Terminated)된 상태였기 때문에, "에러를 전달하라"는 작업 요청마저 거절(`RejectedExecutionException`)당한 것입니다.
 
 결국 에러 시그널을 배달해 줄 집배원(Executor)이 사라졌으니 Downstream은 에러가 났다는 사실조차 전달받지 못한 채 무한히 데이터를 기다리는 상태(Stuck)가 되어버렸고, 이로 인해 `onErrorResume`도 트리거되지 못했던 것이었습니다.
@@ -117,7 +122,7 @@ public void updateCache() {
 ```
 
 ### 2) `publishOn`으로 스레드 격리하기
-Lettuce 스레드(EventLoop)는 매우 소중합니다(?). IO 처리만 빠르게 하고 놔줘야 해요.
+Lettuce 스레드(EventLoop)는 매우 소중합니다(?). IO 처리만 빠르게 하고 놔줘야 합니다.
 데이터 변환이나 비즈니스 로직 같은 무거운 작업은 `publishOn`을 사용하여 확실하게 다른 스레드풀로 넘겨야 합니다.
 `subscribeOn`으로 구독 스레드를 변경하더라도, 이건 구독을 시작하는 스레드만 바뀔 뿐, 비동기 소스에서 발행한 데이터가 처리되는 스레드는 변하지 않습니다.
 ```java
@@ -132,8 +137,8 @@ redisClient.getData()
 
 ## 4. 마치며
 
-이번 장애를 통해 **Reactor에서 `subscribeOn` 동작에 대한 오해"**를 확실히 정리할 수 있었네요.
-습관적으로 캐시 갱신을 하는 스케줄러에서 `subscribeOn`을 남발하고 있었는데 이번 기회를 통해 바로잡을 수 있었어요.
+이번 장애를 통해 **Reactor에서 `subscribeOn` 동작에 대한 오해"**를 확실히 정리할 수 있었습니다.
+습관적으로 캐시 갱신을 하는 스케줄러에서 `subscribeOn`을 남발하고 있었는데 이번 기회를 통해 바로잡을 수 있었습니다.
 
 - **`subscribeOn`**: 구독(Subscribe) 시점의 스레드를 결정.
 - **`publishOn`**: 데이터가 흘러가는(Emit) 도중의 실행 스레드를 변경.
