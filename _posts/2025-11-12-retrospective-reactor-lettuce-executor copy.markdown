@@ -40,7 +40,7 @@ Lettuce가 내부적으로 사용하는 Event Executor(Netty 스레드)가 **종
             .map(Response::of)
             .onErrorResume(e -> Mono.just(Response.ofError(e))) // 실행 안됨.. 
     }
- ``
+ ```
 upstream (redisClient.getData())에서 `RejectedExecutionException`이 발생했다면, `onErrorResume`이 실행되어야 했는데, 이상한 일이었습니다.
 
 ---
