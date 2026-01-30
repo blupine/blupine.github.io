@@ -47,6 +47,22 @@ upstream (redisClient.getData())에서 `RejectedExecutionException`이 발생했
 
 ## 2. 왜 Executor가 죽었을까? (원인 분석)
 
+### [참고] Custom Executor 환경
+우선 당시의 환경 설정을 짚고 넘어가야 할 것 같습니다.
+저희 서비스는 Lettuce가 Netty의 기본 EventLoop(Global Resources)를 공유하지 않고, **별도의 독립된 스레드 풀(Executor)**을 사용하도록 구성되어 있었습니다.
+
+```java
+// Lettuce ClientResources 설정 예시
+EventLoopGroup eventLoopGroup = ...;
+ClientResources res = ClientResources.builder()
+    .eventLoopGroupProvider(new EventLoopGroupProvider() { ... })
+    .build();
+RedisClient redisClient = RedisClient.create(redisURI, res);
+```
+
+애플리케이션의 메인 스레드 풀과 격리하여 안정성을 높이려는 의도였으나, 결과적으로는 이 **전용 Executor** 내부에서 발생한 문제가 Redis 클라이언트 전체의 불능으로 이어지게 되었습니다.
+
+### 로그 분석과 원인
 원인을 찾기 위해 타임라인을 거슬러 올라가 보니, 장애 발생 전부터 특이한 로그가 쌓이고 있었습니다.
 바로 `ErrorCallbackNotImplemented` 관련 로그였습니다.
 
