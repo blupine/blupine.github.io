@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "[장애 회고] Redis(Lettuce) Executor 스레드 고갈과 Reactor 스레드 모델의 오해"
+title:  "Redis(Lettuce) Executor 스레드 고갈과 Reactor 스레드 모델의 오해"
 subtitle: "subscribeOn에 대한 오해"
 date:   2025-11-12 22:13:52 +0900
 categories: dev

@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "[장애 회고] Reactor retryWhen과 onErrorContinue"
+title:  "Reactor retryWhen과 onErrorContinue"
 subtitle: "Reactor 개발자도 후회하는 연산자가 있다?"
 date:   2025-09-22 19:52:13 +0900
 categories: dev
