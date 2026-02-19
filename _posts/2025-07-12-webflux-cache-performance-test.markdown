@@ -36,10 +36,10 @@ public Object cache(ProceedingJoinPoint joinPoint, ReactorCacheable reactorCache
 
 당시에는 이 방식이 **Blocking 방식이라는 사실조차 인지하지 못했다.** "그냥 Ehcache가 빠르니까 괜찮겠지" 하고 별다른 의심 없이 사용해 왔다.
 
-그러다 최근 Spring Boot 3(Spring Framework 6)로 업그레이드를 준비하면서 문서를 보게 되었는데, **Spring 3부터 Caffeine 기반의 Async Caching이 공식 지원된다는 내용**을 접하게 되었다. 기존 `@Cacheable`이 동기식이었던 것과 달리, 새로운 방식은 `CompletableFuture`를 활용해 비동기적으로 동작한다는 설명이었다.
+그러다 최근 Spring Boot 3(Spring Framework 6)로 업그레이드를 준비하면서 문서를 보게 되었는데, **Spring 6부터 Caffeine 기반의 Async Caching이 공식 지원된다는 내용**을 접하게 되었다. 기존 `@Cacheable`은 동기식 반환 타입을 전제로 설계되어 `Mono`/`Flux`를 제대로 지원하지 않았고, 새로운 방식은 `CompletableFuture`를 활용해 비동기적으로 동작한다는 설명이었다.
 
 그제서야 깨달았다.
-**"아, 우리가 지금 쓰고 있는 방식(Ehcache JCache)은 사실상 동기(Blocking) 방식이었구나!"**
+**"아, 우리가 지금 쓰고 있는 방식(Ehcache + 커스텀 AOP)은 사실상 동기(Blocking) 방식이었구나!"**
 
 자연스럽게 고민이 시작되었다.
 > "비동기 방식으로 변경하면 기존 대비 유의미한 성능 및 안정성 차이가 있을까?"
